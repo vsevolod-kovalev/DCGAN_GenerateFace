@@ -1,7 +1,7 @@
 import numpy as np
+from constants import *
 
-LRELU_ALPHA = 0.2
-class Conv2d:
+class Conv2D:
     def __init__(self, input_shape, num_filters, kernel_size, stride, padding, activation):
         self.activation = activation
         self.num_filters = num_filters
@@ -18,7 +18,7 @@ class Conv2d:
         self.Z = np.zeros((self.feature_map_height, self.feature_map_width, num_filters))
         self.A = np.zeros_like(self.Z)
     def forward(self, input):
-        padded_input = np.pad(
+        self.padded_input = np.pad(
             input,
             pad_width=((self.padding, self.padding), (self.padding, self.padding), (0, 0)),
             mode='constant',
@@ -26,7 +26,7 @@ class Conv2d:
         )
         for i in range(self.feature_map_height):
             for j in range(self.feature_map_width):
-                region = padded_input[
+                region = self.padded_input[
                     i * self.stride : i * self.stride + self.kernel_size,
                     j * self.stride : j * self.stride + self.kernel_size,
                 ]
@@ -34,122 +34,29 @@ class Conv2d:
                     self.Z[i, j, k] = np.sum(self.W[k] * region) + self.B[k]
         match self.activation.lower():
             case 'relu':
-                self.A = np.maximum(0, self.Z)
+                self.A, self.dA_dZ = np.maximum(0, self.Z), np.where(self.Z > 0, 1, 0)
             case 'lrelu' | 'leaky_relu':
-                self.A = np.where(self.Z > 0, self.Z, self.Z * LRELU_ALPHA)
+                self.A, self.dA_dZ = np.where(self.Z > 0, self.Z, self.Z * LRELU_ALPHA), np.where(self.Z > 0, 1, LRELU_ALPHA)
             case _:
                 raise Exception("Error. Unknown activation function.")
         return self.A
-class TConv2d:
-    def __init__(self, input_shape, num_filters, kernel_size, stride, padding, activation):
-        self.activation = activation
-        self.num_filters = num_filters
-        self.padding = padding
-        self.input_height, self.input_width, self.depth = input_shape
-        self.kernel_size, self.stride = kernel_size, stride
-        self.feature_map_width = (self.input_width - 1) * self.stride + self.kernel_size - 2 * self.padding
-        self.feature_map_height = (self.input_height - 1) * self.stride + self.kernel_size - 2 * self.padding
-        if not (np.modf(self.feature_map_width)[0] == 0.0 and np.modf(self.feature_map_height)[0] == 0.0):
-            raise Exception("Error. Feature map size must be a integer.")
-        self.W = np.random.uniform(-0.1, 0.1, (num_filters, kernel_size, kernel_size, self.depth))
-        self.B = np.zeros((num_filters))
-        self.feature_map_width, self.feature_map_height = int(self.feature_map_width), int(self.feature_map_height)
-        self.Z = np.zeros((self.feature_map_height, self.feature_map_width, num_filters))
-        self.Z_unpadded = np.zeros((self.feature_map_height + 2 * self.padding, self.feature_map_width + 2 * self.padding, num_filters))
-        self.A = np.zeros_like(self.Z)
-    def forward(self, input):
-        input = input.reshape((self.input_height, self.input_width, self.depth))
-        self.Z_unpadded[:] = 0
-        for i in range(self.input_height):
-            for j in range(self.input_width):
+    def backward(self, gradient, W_delta_accumulated, B_delta_accumulated):
+        dL_dZ = gradient * self.dA_dZ
+        for k in range(self.num_filters):
+            B_delta_accumulated[k] += np.sum(dL_dZ[:, :, k])
+        dX = np.zeros_like(self.padded_input)
+        for i in range(self.feature_map_height):
+            for j in range(self.feature_map_width):
                 start_i = i * self.stride
                 start_j = j * self.stride
                 end_i = start_i + self.kernel_size
                 end_j = start_j + self.kernel_size
-                input_pixel = input[i, j, :].reshape((1, 1, -1)) 
                 for k in range(self.num_filters):
-                    self.Z_unpadded[start_i:end_i, start_j:end_j, k] += np.sum(
-                        input_pixel * self.W[k],
-                        axis=-1
-                    )
+                    grad_val = dL_dZ[i, j, k]
+                    W_delta_accumulated[k] += grad_val * self.padded_input[start_i:end_i, start_j:end_j, :]
+                    dX[start_i:end_i, start_j:end_j, :] += grad_val * self.W[k]
         if self.padding > 0:
-            self.Z = self.Z_unpadded[self.padding:-self.padding, self.padding:-self.padding, :]
+            updated_gradient = dX[self.padding:-self.padding, self.padding:-self.padding, :]
         else:
-            self.Z = self.Z_unpadded
-        for k in range(self.num_filters):
-            self.Z[:, :, k] += self.B[k]
-        activation = self.activation.lower()
-        if activation == 'relu':
-            self.A = np.maximum(0, self.Z)
-        elif activation in ('lrelu', 'leaky_relu'):
-            self.A = np.where(self.Z > 0, self.Z, self.Z * LRELU_ALPHA)
-        elif activation == 'tanh':
-            self.A = np.tanh(self.Z)
-        else:
-            raise Exception("Error. Unknown activation function.")
-        return self.A
-
-class Dense:
-    def __init__(self, input_shape, num_neurons, activation):
-        input_size = np.prod(input_shape)
-        self.activation = activation
-        self.num_neurons = num_neurons
-        self.W = np.random.uniform(-0.1, 0.1, (num_neurons, input_size))
-        self.B = np.zeros((num_neurons))
-        self.Z = np.zeros((num_neurons))
-        self.A = np.zeros_like(self.Z)
-    def forward(self, input):
-        self.flattened_input = np.ravel(input)
-        self.Z = np.dot(self.W, self.flattened_input) + self.B
-        match self.activation.lower():
-            case 'relu':
-                self.A = np.maximum(0, self.Z)
-            case 'lrelu' | 'leaky_relu':
-                self.A = np.where(self.Z > 0, self.Z, self.Z * LRELU_ALPHA)
-            case 'sigmoid':
-                self.A = 1 / (1 + np.exp(-self.Z))
-            case _:
-                raise Exception("Error. Unknown activation function.")
-        return self.A
-
-class Generator:
-    def __init__(self):
-        self.layers = [
-            Dense(input_shape=(1, 1, 100), num_neurons=8 * 8 * 256, activation="relu"),
-            TConv2d(input_shape=(8, 8, 256), num_filters=128, kernel_size=4, stride=2, padding=1, activation="relu"),
-            TConv2d(input_shape=(16, 16, 128), num_filters=64, kernel_size=4, stride=2, padding=1, activation="relu"),
-            TConv2d(input_shape=(32, 32, 64), num_filters=32, kernel_size=4, stride=2, padding=1, activation="relu"),
-            TConv2d(input_shape=(64, 64, 32), num_filters=3, kernel_size=4, stride=2, padding=1, activation="tanh")
-        ]
-
-    def forward(self, z):
-        x = z
-        for layer in self.layers:
-            x = layer.forward(x)
-        return x
-
-class Discriminator:
-    def __init__(self):
-        self.layers = [
-            Conv2d(input_shape=(128, 128, 3), num_filters=32, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Conv2d(input_shape=(64, 64, 32), num_filters=64, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Conv2d(input_shape=(32, 32, 64), num_filters=128, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Conv2d(input_shape=(16, 16, 128), num_filters=256, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Dense(input_shape=(8, 8, 256), num_neurons=1, activation="sigmoid")
-        ]
-
-    def forward(self, x):
-        for layer in self.layers:
-            x = layer.forward(x)
-        return x
-
-
-generator = Generator()
-discriminator = Discriminator()
-
-latent_vector = np.random.uniform(-1, 1, (1, 1, 100))
-generated_image = generator.forward(latent_vector)
-print(np.shape(generated_image))
-discriminator_output = discriminator.forward(generated_image)
-print(np.shape(discriminator_output))
-print(discriminator_output)
+            updated_gradient = dX
+        return updated_gradient
