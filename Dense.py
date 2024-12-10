@@ -9,9 +9,8 @@ class Dense:
         self.activation = activation
         self.num_neurons = num_neurons
 
-        self.W = np.random.uniform(-0.1, 0.1, (self.input_size, num_neurons))
-        # self.W = np.random.randn(self.input_size, self.num_neurons) * np.sqrt(2 / self.input_size)
-
+        # self.W = np.random.uniform(-0.1, 0.1, (self.input_size, num_neurons))
+        self.W = np.random.randn(self.input_size, self.num_neurons) * np.sqrt(1 / self.input_size)
 
         self.B = np.zeros((num_neurons))
 

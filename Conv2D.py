@@ -13,8 +13,9 @@ class Conv2D:
         self.feature_map_height = (self.input_height + 2 * padding - kernel_size) / stride + 1
         if not (np.modf(self.feature_map_width)[0] == 0.0 and np.modf(self.feature_map_height)[0] == 0.0):
             raise Exception("Error. Feature map size must be a integer.")
-        self.W = np.random.uniform(-0.1, 0.1, (num_filters, kernel_size, kernel_size, self.depth))
-        # self.W = np.random.randn(num_filters, kernel_size, kernel_size, self.depth) * np.sqrt(2 / self.depth)
+        # self.W = np.random.uniform(-0.1, 0.1, (num_filters, kernel_size, kernel_size, self.depth))
+        std_dev = np.sqrt(2 / (self.kernel_size * self.kernel_size * self.depth))
+        self.W = np.random.normal(0, std_dev, (num_filters, kernel_size, kernel_size, self.depth))
 
         self.B = np.zeros((num_filters))
         self.feature_map_width, self.feature_map_height = int(self.feature_map_width), int(self.feature_map_height)
