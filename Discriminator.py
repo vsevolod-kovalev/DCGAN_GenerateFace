@@ -2,17 +2,19 @@ import numpy as np
 from Conv2D import Conv2D
 from Dropout import Dropout
 from Dense import Dense
+from MinibatchDiscriminator import MinibatchDiscriminator
 
 class Discriminator:
     def __init__(self, batch_size):
         self.layers = [
-            Conv2D(batch_size=batch_size, input_shape=(32, 32, 3), num_filters=32, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Conv2D(batch_size=batch_size, input_shape=(16, 16, 32), num_filters=64, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Conv2D(batch_size=batch_size, input_shape=(8, 8, 64), num_filters=128, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Conv2D(batch_size=batch_size, input_shape=(4, 4, 128), num_filters=256, kernel_size=4, stride=2, padding=1, activation="lrelu"),
-            Dropout(dropout=0.3),
-            Dense(batch_size=batch_size, input_shape=(2, 2, 256), num_neurons=1, activation="sigmoid")
+            Conv2D(batch_size=batch_size, input_shape=(64, 64, 3), num_filters=8, kernel_size=4, stride=2, padding=1, activation="lrelu"),
+            Conv2D(batch_size=batch_size, input_shape=(32, 32, 8), num_filters=16, kernel_size=4, stride=2, padding=1, activation="lrelu"),
+            Conv2D(batch_size=batch_size, input_shape=(16, 16, 16), num_filters=32, kernel_size=4, stride=2, padding=1, activation="lrelu"),
+            Conv2D(batch_size=batch_size, input_shape=(8, 8, 32), num_filters=64, kernel_size=4, stride=2, padding=1, activation="lrelu"),
+            Conv2D(batch_size=batch_size, input_shape=(4, 4, 64), num_filters=128, kernel_size=4, stride=2, padding=1, activation="lrelu"),
+            Dense(batch_size=batch_size, input_shape=(2, 2, 128), num_neurons=1, activation="sigmoid")
         ]
+
         self.W_deltas = [np.zeros_like(layer.W) if hasattr(layer, 'W') else None for layer in self.layers]
         self.B_deltas = [np.zeros_like(layer.B) if hasattr(layer, 'B') else None for layer in self.layers]
 
