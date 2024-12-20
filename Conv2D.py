@@ -2,7 +2,8 @@ import numpy as np
 from constants import *
 
 class Conv2D:
-    def __init__(self, batch_size, input_shape, num_filters, kernel_size, stride, padding, activation):
+    def __init__(self, batch_size, input_shape, num_filters, kernel_size, stride, padding, activation, frozen=False):
+        self.frozen=frozen
         self.activation = activation
         self.num_filters = num_filters
         self.batch_size = batch_size
@@ -13,10 +14,8 @@ class Conv2D:
         self.feature_map_height = (self.input_height + 2 * padding - kernel_size) / stride + 1
         if not (np.modf(self.feature_map_width)[0] == 0.0 and np.modf(self.feature_map_height)[0] == 0.0):
             raise Exception("Error. Feature map size must be a integer.")
-        # self.W = np.random.uniform(-0.1, 0.1, (num_filters, kernel_size, kernel_size, self.depth))
         std_dev = np.sqrt(2 / (self.kernel_size * self.kernel_size * self.depth))
         self.W = np.random.normal(0, std_dev, (num_filters, kernel_size, kernel_size, self.depth))
-
         self.B = np.zeros((num_filters))
         self.feature_map_width, self.feature_map_height = int(self.feature_map_width), int(self.feature_map_height)
         self.Z = np.zeros((batch_size, self.feature_map_height, self.feature_map_width, num_filters))
@@ -64,16 +63,17 @@ class Conv2D:
                         j * self.stride : j * self.stride + self.kernel_size,
                         :
                     ]
+                    if not self.frozen:
+                        W_delta_accumulated[k] += np.sum(dL_dZ[:, i, j, k][:, None, None, None] * region, axis=0)
+                        dX[
+                            :,
+                            i * self.stride : i * self.stride + self.kernel_size,
+                            j * self.stride : j * self.stride + self.kernel_size,
+                            :
+                        ] += dL_dZ[:, i, j, k][:, None, None, None] * self.W[k]
 
-                    W_delta_accumulated[k] += np.sum(dL_dZ[:, i, j, k][:, None, None, None] * region, axis=0)
-                    dX[
-                        :,
-                        i * self.stride : i * self.stride + self.kernel_size,
-                        j * self.stride : j * self.stride + self.kernel_size,
-                        :
-                    ] += dL_dZ[:, i, j, k][:, None, None, None] * self.W[k]
-
-            B_delta_accumulated[k] += np.sum(dL_dZ[:, :, :, k])
+            if not self.frozen:
+                B_delta_accumulated[k] += np.sum(dL_dZ[:, :, :, k])
         if self.padding > 0:
             updated_gradient = dX[:, self.padding:-self.padding, self.padding:-self.padding, :]
         else:
