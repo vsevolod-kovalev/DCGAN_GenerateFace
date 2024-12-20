@@ -301,6 +301,7 @@ Determining optimal model parameters was time-consuming due to the slower traini
 - **64x64 Output:** Detailed outputs, including hairstyles, helmets, belts, and capes.
   <p align="center">
     <img width="649" alt="fake_O" src="https://github.com/user-attachments/assets/cd5ff808-6a20-4dee-ad87-fe48bdd29904" />
+    <p>The progression of a partially frozen network after extending the dimension from 16x16 to 32x32 to help the GAN adapt to changes</p>
   </p>
 
 
