@@ -295,9 +295,8 @@ Determining optimal model parameters was time-consuming due to the slower traini
 2. **Frozen Layers:**
    - Added a **frozen layer** feature to all trainable layers. This allowed focusing on training new layers while keeping previously trained layers unchanged.
 
-**Example Images:**
-- **16x16 Output:** Basic shapes, indistinguishable details. *(Insert example image)*  
-- **32x32 Output:** Clearer shapes with some visible details. *(Insert example image)*  
+- **16x16 Output:** Basic shapes, indistinguishable details.
+- **32x32 Output:** Clearer shapes with some visible details.
 - **64x64 Output:** Detailed outputs, including hairstyles, helmets, belts, and capes.
   <p align="center">
     <img width="649" alt="fake_O" src="https://github.com/user-attachments/assets/cd5ff808-6a20-4dee-ad87-fe48bdd29904" />
