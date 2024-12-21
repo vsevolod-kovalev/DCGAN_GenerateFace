@@ -1,3 +1,7 @@
+## Try It Out!
+
+Click the button below to open the interactive demo in Google Colab. You'll be able to run the model, generate pixel heroes, and view the results in your browser:
+
 [![Run in Google Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/vsevolod-kovalev/DCGAN_Pixel_Heroes/blob/main/notebook_demo.ipynb)
 
 # DCGAN: Deep Convolutional Generative Adversarial Network
