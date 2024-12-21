@@ -1,3 +1,4 @@
+[![Run in Google Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/vsevolod-kovalev/DCGAN_Pixel_Heroes/blob/main/notebook_demo.ipynb)
 
 # DCGAN: Deep Convolutional Generative Adversarial Network
 
